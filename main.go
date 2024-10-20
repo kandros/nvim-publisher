@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -17,7 +16,7 @@ const (
 
 func main() {
 	// Create a temporary file
-	if err := ioutil.WriteFile(tempFile, []byte{}, 0644); err != nil {
+	if err := os.WriteFile(tempFile, []byte{}, 0644); err != nil {
 		fmt.Printf("Error creating temporary file: %v\n", err)
 		return
 	}
@@ -55,7 +54,7 @@ func main() {
 	}
 
 	// Read the content of the file
-	content, err := ioutil.ReadFile(tempFile)
+	content, err := os.ReadFile(tempFile)
 	if err != nil {
 		fmt.Printf("Error reading file: %v\n", err)
 		return
