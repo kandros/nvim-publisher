@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 const (
@@ -22,14 +23,34 @@ func main() {
 	}
 	defer os.Remove(tempFile)
 
-	// Open the file in Neovim
-	cmd := exec.Command("nvim", tempFile)
+	// Get the initial file info
+	initialInfo, err := os.Stat(tempFile)
+	if err != nil {
+		fmt.Printf("Error getting initial file info: %v\n", err)
+		return
+	}
+
+	// Open the file in Neovim in insert mode
+	cmd := exec.Command("nvim", "+startinsert", tempFile)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
 		fmt.Printf("Error running Neovim: %v\n", err)
+		return
+	}
+
+	// Get the file info after editing
+	afterInfo, err := os.Stat(tempFile)
+	if err != nil {
+		fmt.Printf("Error getting file info after editing: %v\n", err)
+		return
+	}
+
+	// Check if the file was modified
+	if afterInfo.ModTime() == initialInfo.ModTime() || afterInfo.Size() == 0 {
+		fmt.Println("File was not modified or is empty. Not sending request.")
 		return
 	}
 
@@ -40,8 +61,17 @@ func main() {
 		return
 	}
 
+	// Trim leading and trailing whitespace
+	trimmedContent := strings.TrimSpace(string(content))
+
+	// Check if the trimmed content is empty
+	if trimmedContent == "" {
+		fmt.Println("File content is empty after trimming. Not sending request.")
+		return
+	}
+
 	// Send the content to the webhook
-	if err := sendToWebhook(content); err != nil {
+	if err := sendToWebhook([]byte(trimmedContent)); err != nil {
 		fmt.Printf("Error sending to webhook: %v\n", err)
 		return
 	}
